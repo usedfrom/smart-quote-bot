@@ -18,23 +18,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Загрузка переменных окружения
+# Загрузка переменных окружения (только для локального запуска)
 env_path = os.path.join(os.path.dirname(__file__), '.env')
-logger.info(f"Попытка загрузки файла .env из: {env_path}")
-if not os.path.exists(env_path):
-    logger.error(f"Файл .env не найден по пути: {env_path}")
-    raise FileNotFoundError(f"Файл .env не найден по пути: {env_path}")
+if os.path.exists(env_path):
+    logger.info(f"Загрузка файла .env из: {env_path}")
+    load_dotenv(env_path)
+else:
+    logger.info("Файл .env не найден, используются переменные окружения из среды")
 
-load_dotenv(env_path)
-logger.info(f"Содержимое .env загружено: TELEGRAM_TOKEN={os.getenv('TELEGRAM_TOKEN')[:10]}...")
-
-# Получение токена Telegram из .env
+# Получение токена Telegram
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 # Проверка токена
 if not TELEGRAM_TOKEN:
-    logger.error("TELEGRAM_TOKEN не найден в файле .env")
-    raise ValueError("TELEGRAM_TOKEN не установлен. Убедитесь, что файл .env содержит корректный токен.")
+    logger.error("TELEGRAM_TOKEN не установлен")
+    raise ValueError("TELEGRAM_TOKEN не установлен. Убедитесь, что он задан в .env или в переменных окружения.")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Команда /start получена")
