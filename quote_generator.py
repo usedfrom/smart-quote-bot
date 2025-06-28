@@ -63,7 +63,6 @@ def generate_quote(user_message):
             f"Счастье — в простых вещах, что окружают нас.",
             f"Цени моменты радости, которые дарит жизнь."
         )
-        
         return quote, suggestion
     else:
         raise Exception(f"Ошибка API: {response.text}")
