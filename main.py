@@ -38,7 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Команда /start получена")
     await update.message.reply_text(
         "Привет! Я бот, который создаёт умные высказывания. "
-        "Напиши, например: 'Создай умное высказывание о счастье', "
+        "Напиши любой запрос, например, 'о счастье' или 'о жизни', "
         "и я сгенерирую цитату и изображение!"
     )
 
@@ -46,33 +46,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     logger.info(f"Получено сообщение: {user_message}")
     
-    if "создай" in user_message.lower() or "цитата" in user_message.lower():
-        try:
-            # Генерация цитаты через Grok API
-            quote, suggestion = generate_quote(user_message)
-            
-            # Создание изображения
-            image_path = create_quote_image(quote, suggestion)
-            
-            # Отправка текста
-            response = f"{quote}\n\n{suggestion}"
-            await update.message.reply_text(response)
-            
-            # Отправка изображения
-            with open(image_path, 'rb') as photo:
-                await update.message.reply_photo(photo=photo)
-            
-            # Удаление временного файла
-            os.remove(image_path)
-            
-        except Exception as e:
-            logger.error(f"Ошибка: {str(e)}")
-            await update.message.reply_text(
-                "Произошла ошибка при генерации цитаты. Попробуйте снова!"
-            )
-    else:
+    try:
+        # Генерация цитаты через DeepSeek API
+        quote, suggestion = generate_quote(user_message)
+        
+        # Создание изображения
+        image_path = create_quote_image(quote, suggestion)
+        
+        # Отправка текста
+        response = f"{quote}\n\n{suggestion}"
+        await update.message.reply_text(response)
+        
+        # Отправка изображения
+        with open(image_path, 'rb') as photo:
+            await update.message.reply_photo(photo=photo)
+        
+        # Удаление временного файла
+        os.remove(image_path)
+        
+    except Exception as e:
+        logger.error(f"Ошибка: {str(e)}")
         await update.message.reply_text(
-            "Напишите запрос, например: 'Создай умное высказывание о счастье'"
+            "Произошла ошибка при генерации цитаты. Попробуйте снова!"
         )
 
 def main():
