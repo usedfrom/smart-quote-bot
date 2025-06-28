@@ -35,42 +35,41 @@ def generate_quote(user_message):
     # Формируем запрос к DeepSeek API
     prompt = (
         f"Создай умное высказывание на русском языке по теме '{user_message}'. "
-        "Формат ответа: основная цитата (1-2 предложения, до 100 символов) "
-        "и дополнительное предложение (1-2 предложения, до 150 символов). "
-        "Раздели цитату и предложение двумя переносами строки (\n\n). "
+        "Формат ответа: основная цитата (1-2 лаконичных предложения) и пояснение (1-2 лаконичных предложения). "
+        "Раздели цитату и пояснение двумя переносами строки (\n\n). "
         "Пример:\n"
-        "Кто видит красоту в простом, никогда не остаётся без радости.\n\n"
-        "Воспитывай благодарность и учись замечать маленькое счастье в повседневности."
+        "Жизнь — это путь, полный уроков и открытий.\n\n"
+        "Каждый шаг учит нас ценить момент и расти."
     )
     
     try:
         response = client.chat.completions.create(
-            model="deepseek/deepseek-r1:free",
+            model="deepseek/deepseek-chat",  # Переключаемся на более стабильную модель
             messages=[
                 {"role": "system", "content": "Ты — умный ассистент, создающий вдохновляющие цитаты на русском языке."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=300,  # Увеличено для более длинных ответов
+            max_tokens=400,  # Увеличено для полной генерации цитаты и пояснения
             temperature=0.7
         )
         
         text = response.choices[0].message.content.strip()
         logger.info(f"Ответ API: {text}")
         
-        # Разделяем цитату и предложение
+        # Разделяем цитату и пояснение
         lines = text.split("\n\n")
         if len(lines) >= 2:
-            quote = lines[0][:100].strip()  # Ограничиваем длину цитаты
-            suggestion = lines[1][:150].strip()  # Ограничиваем длину предложения
+            quote = lines[0].strip()
+            suggestion = lines[1].strip()
         else:
             # Резервный разбор, если API не вернул два блока
             sentences = text.replace("\n", " ").split(". ")
             if len(sentences) >= 2:
-                quote = sentences[0][:100].strip() + "."
-                suggestion = ". ".join(sentences[1:])[:150].strip() + "."
+                quote = sentences[0].strip() + "."
+                suggestion = ". ".join(sentences[1:]).strip() + "."
             else:
-                quote = text[:100].strip()
-                suggestion = "Продолжай искать вдохновение в повседневности."
+                quote = text.strip()
+                suggestion = f"Размышляй над темой '{user_message}' и находи в ней вдохновение."
         
         logger.info(f"Сгенерировано: quote='{quote}', suggestion='{suggestion}'")
         return quote, suggestion
