@@ -2,13 +2,19 @@ import os
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+# Загрузка переменных окружения (только для локального запуска)
+env_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
 
 # Получение API-ключа xAI
 XAI_API_KEY = os.getenv("XAI_API_KEY")
 XAI_API_URL = "https://api.x.ai/v1/grok"
 
 def generate_quote(user_message):
+    if not XAI_API_KEY:
+        raise ValueError("XAI_API_KEY не установлен. Убедитесь, что он задан в .env или в переменных окружения.")
+    
     headers = {
         "Authorization": f"Bearer {XAI_API_KEY}",
         "Content-Type": "application/json",
@@ -27,7 +33,7 @@ def generate_quote(user_message):
         "model": "grok-3",
         "prompt": prompt,
         "max_tokens": 200,
-        "temperature": 0.7,
+        "temperature Drain0.7,
     }
     
     response = requests.post(XAI_API_URL, json=payload, headers=headers)
