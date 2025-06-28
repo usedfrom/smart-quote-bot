@@ -26,13 +26,17 @@ if os.path.exists(env_path):
 else:
     logger.info("Файл .env не найден, используются переменные окружения из среды")
 
-# Получение токена Telegram
+# Получение токена Telegram и URL webhook
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-# Проверка токена
+# Проверка токена и URL
 if not TELEGRAM_TOKEN:
     logger.error("TELEGRAM_TOKEN не установлен")
     raise ValueError("TELEGRAM_TOKEN не установлен. Убедитесь, что он задан в .env или в переменных окружения.")
+if not WEBHOOK_URL:
+    logger.error("WEBHOOK_URL не установлен")
+    raise ValueError("WEBHOOK_URL не установлен. Убедитесь, что он задан в .env или в переменных окружения.")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Команда /start получена")
@@ -72,16 +76,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     try:
-        logger.info(f"Запуск бота с токеном: {TELEGRAM_TOKEN[:10]}...")  # Вывод первых 10 символов токена для проверки
+        logger.info(f"Запуск бота с токеном: {TELEGRAM_TOKEN[:10]}...")
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         
         # Обработчики
         application.add_handler(CommandHandler("start", start))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
         
-        # Запуск бота
-        logger.info("Бот запускается...")
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        # Запуск бота с webhook
+        logger.info(f"Установка webhook: {WEBHOOK_URL}")
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=int(os.getenv("PORT", 8443)),
+            url_path="/webhook",
+            webhook_url=WEBHOOK_URL
+        )
     except Exception as e:
         logger.error(f"Ошибка при запуске бота: {str(e)}")
         raise
