@@ -59,8 +59,8 @@ async def generate_quote(theme: str) -> tuple[str, str]:
             temperature=0.7
         )
         content = response.choices[0].message.content
-        quote, suggestion = content.split("\n\n", 1)
         print(f"Ответ API: {content}")
+        quote, suggestion = content.split("\n\n", 1)
         return quote.strip(), suggestion.strip()
     except Exception as e:
         print(f"Ошибка API: {str(e)}")
