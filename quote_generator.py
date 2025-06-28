@@ -14,8 +14,6 @@ def generate_quote(user_message):
         "Content-Type": "application/json",
     }
     
-   –
-
     # Формируем запрос к Grok API
     prompt = (
         f"Создай умное высказывание на русском языке по теме '{user_message}'. "
