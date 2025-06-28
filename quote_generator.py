@@ -33,7 +33,7 @@ def generate_quote(user_message):
         "model": "grok-3",
         "prompt": prompt,
         "max_tokens": 200,
-        "temperature Drain0.7,
+        "temperature": 0.7,
     }
     
     response = requests.post(XAI_API_URL, json=payload, headers=headers)
