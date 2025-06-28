@@ -1,5 +1,5 @@
 import os
-import requests
+from openai import OpenAI
 from dotenv import load_dotenv
 
 # Загрузка переменных окружения (только для локального запуска)
@@ -7,20 +7,25 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path)
 
-# Получение API-ключа xAI
-XAI_API_KEY = os.getenv("XAI_API_KEY")
-XAI_API_URL = "https://api.x.ai/v1/chat/completions"
+# Получение API-ключа OpenRouter
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1"
 
 def generate_quote(user_message):
-    if not XAI_API_KEY:
-        raise ValueError("XAI_API_KEY не установлен. Убедитесь, что он задан в .env или в переменных окружения.")
+    if not OPENROUTER_API_KEY:
+        # Заглушка, если API-ключ отсутствует
+        return (
+            f"Счастье — в простых вещах, что окружают нас.",
+            f"Цени моменты радости, которые дарит жизнь."
+        )
     
-    headers = {
-        "Authorization": f"Bearer {XAI_API_KEY}",
-        "Content-Type": "application/json",
-    }
+    # Инициализация клиента OpenAI для OpenRouter
+    client = OpenAI(
+        api_key=OPENROUTER_API_KEY,
+        base_url=OPENROUTER_API_URL
+    )
     
-    # Формируем запрос к Grok API
+    # Формируем запрос к DeepSeek API
     prompt = (
         f"Создай умное высказывание на русском языке по теме '{user_message}'. "
         "Формат ответа: основная цитата (1-2 предложения, максимум 100 символов) "
@@ -29,30 +34,35 @@ def generate_quote(user_message):
         "Воспитывай благодарность и учись замечать маленькое счастье в повседневности.'"
     )
     
-    payload = {
-        "model": "grok",
-        "messages": [
-            {"role": "system", "content": "Ты — умный ассистент, создающий вдохновляющие цитаты."},
-            {"role": "user", "content": prompt}
-        ],
-        "max_tokens": 200,
-        "temperature": 0.7,
-    }
-    
-    response = requests.post(XAI_API_URL, json=payload, headers=headers)
-    
-    if response.status_code == 200:
-        result = response.json()
-        text = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+    try:
+        response = client.chat.completions.create(
+            model="deepseek/deepseek-r1:free",
+            messages=[
+                {"role": "system", "content": "Ты — умный ассистент, создающий вдохновляющие цитаты."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=200,
+            temperature=0.7
+        )
+        
+        text = response.choices[0].message.content.strip()
         
         # Разделяем цитату и предложение
-        lines = text.strip().split("\n\n")
+        lines = text.split("\n\n")
         if len(lines) >= 2:
-            quote = lines[0]
-            suggestion = lines[1]
+            quote = lines[0][:100]  # Ограничиваем длину цитаты
+            suggestion = lines[1][:150]  # Ограничиваем длину предложения
         else:
             quote = text[:100]
             suggestion = "Продолжай искать вдохновение в повседневности."
+        
+        return quote, suggestion
+    except Exception as e:
+        # Заглушка в случае ошибки API
+        return (
+            f"Счастье — в простых вещах, что окружают нас.",
+            f"Цени моменты радости, которые дарит жизнь."
+        )
         
         return quote, suggestion
     else:
