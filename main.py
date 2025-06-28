@@ -1,92 +1,45 @@
 import os
-import logging
+import asyncio
 from telegram import Update
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    filters,
-    ContextTypes,
-)
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
 from quote_generator import generate_quote
-from image_generator import create_quote_image
+from image_generator import create_image
 
-# Настройка логирования
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
-logger = logging.getLogger(__name__)
-
-# Загрузка переменных окружения (только для локального запуска)
-env_path = os.path.join(os.path.dirname(__file__), '.env')
-if os.path.exists(env_path):
-    logger.info(f"Загрузка файла .env из: {env_path}")
-    load_dotenv(env_path)
-else:
-    logger.info("Файл .env не найден, используются переменные окружения из среды")
-
-# Получение токена Telegram
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-
-# Проверка токена
-if not TELEGRAM_TOKEN:
-    logger.error("TELEGRAM_TOKEN не установлен")
-    raise ValueError("TELEGRAM_TOKEN не установлен. Убедитесь, что он задан в .env или в переменных окружения.")
+load_dotenv()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("Команда /start получена")
     await update.message.reply_text(
-        "Привет! Я бот, который создаёт умные высказывания. "
-        "Напиши любой запрос, например, 'о счастье' или 'о жизни', "
-        "и я сгенерирую цитату и изображение!"
+        "Привет! Я бот, создающий вдохновляющие цитаты. "
+        "Напиши тему (например, 'жизнь', 'счастье', 'успех', 'любовь', 'вдохновение'), "
+        "и я создам цитату с пояснением!"
     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
-    logger.info(f"Получено сообщение: {user_message}")
-    
+    theme = update.message.text.strip()
+    await asyncio.sleep(1)  # Задержка для предотвращения лимитов API
     try:
-        # Генерация цитаты через DeepSeek API
-        quote, suggestion = generate_quote(user_message)
-        
-        # Создание изображения
-        image_path = create_quote_image(quote, suggestion)
-        
-        # Отправка текста
-        response = f"{quote}\n\n{suggestion}"
-        await update.message.reply_text(response)
-        
-        # Отправка изображения
+        quote, suggestion = await generate_quote(theme)  # Добавлен await
+        image_path = create_image(quote, suggestion)
         with open(image_path, 'rb') as photo:
-            await update.message.reply_photo(photo=photo)
-        
-        # Удаление временного файла
+            await update.message.reply_photo(
+                photo=photo,
+                caption=f"{quote}\n\n{suggestion}"
+            )
         os.remove(image_path)
-        
     except Exception as e:
-        logger.error(f"Ошибка: {str(e)}")
-        await update.message.reply_text(
-            "Произошла ошибка при генерации цитаты. Попробуйте снова!"
-        )
+        await update.message.reply_text(f"Ошибка: {str(e)}")
 
 def main():
-    try:
-        logger.info(f"Запуск бота с токеном: {TELEGRAM_TOKEN[:10]}...")
-        application = Application.builder().token(TELEGRAM_TOKEN).build()
-        
-        # Обработчики
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-        
-        # Запуск бота с polling
-        logger.info("Бот запускается в режиме polling...")
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
-    except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {str(e)}")
-        raise
+    token = os.getenv("TELEGRAM_TOKEN")
+    print(f"Запуск бота с токеном: {token[:10]}...")
+    app = Application.builder().token(token).build()
+    print("Бот запускается в режиме polling...")
+    
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    app.run_polling()
 
-if __name__ == "__main__":
-    main()
 if __name__ == "__main__":
     main()
