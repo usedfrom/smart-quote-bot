@@ -2,6 +2,7 @@ import os
 import logging
 from openai import OpenAI
 from dotenv import load_dotenv
+import random
 
 # Настройка логирования
 logging.basicConfig(
@@ -14,25 +15,22 @@ env_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path)
 
-# Получение API-ключа OpenRouter
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1"
+# Получение API-ключа OpenAI
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_URL = "https://api.openai.com/v1"
 
 def generate_quote(user_message):
-    if not OPENROUTER_API_KEY:
-        logger.error("OPENROUTER_API_KEY не установлен, используется заглушка")
-        return (
-            f"Счастье — в простых вещах, что окружают нас.",
-            f"Цени моменты радости, которые дарит жизнь."
-        )
+    if not OPENAI_API_KEY:
+        logger.error("OPENAI_API_KEY не установлен, используется локальная цитата")
+        return generate_local_quote(user_message)
     
-    # Инициализация клиента OpenAI для OpenRouter
+    # Инициализация клиента OpenAI
     client = OpenAI(
-        api_key=OPENROUTER_API_KEY,
-        base_url=OPENROUTER_API_URL
+        api_key=OPENAI_API_KEY,
+        base_url=OPENAI_API_URL
     )
     
-    # Формируем запрос к DeepSeek API
+    # Формируем запрос к OpenAI API
     prompt = (
         f"Создай умное высказывание на русском языке по теме '{user_message}'. "
         "Формат ответа: основная цитата (1-2 лаконичных предложения) и пояснение (1-2 лаконичных предложения). "
@@ -44,12 +42,12 @@ def generate_quote(user_message):
     
     try:
         response = client.chat.completions.create(
-            model="deepseek/deepseek-chat",  # Переключаемся на более стабильную модель
+            model="gpt-3.5-turbo",  # Используем gpt-3.5-turbo для экономии
             messages=[
                 {"role": "system", "content": "Ты — умный ассистент, создающий вдохновляющие цитаты на русском языке."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=400,  # Увеличено для полной генерации цитаты и пояснения
+            max_tokens=400,
             temperature=0.7
         )
         
@@ -75,7 +73,37 @@ def generate_quote(user_message):
         return quote, suggestion
     except Exception as e:
         logger.error(f"Ошибка API: {str(e)}")
-        return (
-            f"Счастье — в простых вещах, что окружают нас.",
-            f"Цени моменты радости, которые дарит жизнь."
-        )
+        return generate_local_quote(user_message)
+
+def generate_local_quote(user_message):
+    """Генерирует локальную цитату и пояснение на основе запроса."""
+    user_message = user_message.lower().strip()
+    
+    # Словарь тем с цитатами и пояснениями
+    quotes_db = {
+        "жизнь": [
+            ("Жизнь — это путешествие, а не пункт назначения.", "Цени каждый момент пути, он учит тебя новому."),
+            ("Жизнь подобна книге, каждая страница — новый опыт.", "Пиши свою историю с вдохновением и смелостью.")
+        ],
+        "счастье": [
+            ("Счастье — в умении находить радость в мелочах.", "Замечай красоту в каждом дне, и жизнь станет ярче."),
+            ("Счастье — это выбор, который ты делаешь каждый день.", "Выбирай радость, даже в трудные моменты.")
+        ],
+        "успех": [
+            ("Успех — это шаги вперёд, несмотря на преграды.", "Терпение и упорство приведут тебя к цели."),
+            ("Успех начинается с веры в свои силы.", "Доверяй себе и действуй смело.")
+        ]
+    }
+    
+    # Поиск подходящей темы
+    for theme in quotes_db:
+        if theme in user_message:
+            quote, suggestion = random.choice(quotes_db[theme])
+            logger.info(f"Локальная цитата: quote='{quote}', suggestion='{suggestion}'")
+            return quote, suggestion
+    
+    # Резервная цитата, если тема не найдена
+    default_quote = f"{user_message.capitalize()} — это возможность расти и учиться."
+    default_suggestion = f"Ищи вдохновение в '{user_message}', чтобы раскрыть свой потенциал."
+    logger.info(f"Локальная цитата (резерв): quote='{default_quote}', suggestion='{default_suggestion}'")
+    return default_quote, default_suggestion
