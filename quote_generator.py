@@ -9,7 +9,7 @@ if os.path.exists(env_path):
 
 # Получение API-ключа xAI
 XAI_API_KEY = os.getenv("XAI_API_KEY")
-XAI_API_URL = "https://api.x.ai/v1/grok"
+XAI_API_URL = "https://api.x.ai/v1/chat/completions"
 
 def generate_quote(user_message):
     if not XAI_API_KEY:
@@ -30,8 +30,11 @@ def generate_quote(user_message):
     )
     
     payload = {
-        "model": "grok-3",
-        "prompt": prompt,
+        "model": "grok",
+        "messages": [
+            {"role": "system", "content": "Ты — умный ассистент, создающий вдохновляющие цитаты."},
+            {"role": "user", "content": prompt}
+        ],
         "max_tokens": 200,
         "temperature": 0.7,
     }
@@ -40,7 +43,7 @@ def generate_quote(user_message):
     
     if response.status_code == 200:
         result = response.json()
-        text = result.get("choices", [{}])[0].get("text", "")
+        text = result.get("choices", [{}])[0].get("message", {}).get("content", "")
         
         # Разделяем цитату и предложение
         lines = text.strip().split("\n\n")
@@ -53,4 +56,4 @@ def generate_quote(user_message):
         
         return quote, suggestion
     else:
-        raise Exception("Ошибка API: " + response.text)
+        raise Exception(f"Ошибка API: {response.text}")
