@@ -19,7 +19,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     theme = update.message.text.strip()
     await asyncio.sleep(1)  # Задержка для предотвращения лимитов API
     try:
-        quote, suggestion = await generate_quote(theme)  # Добавлен await
+        quote, suggestion = await generate_quote(theme)
         image_path = create_image(quote, suggestion)
         with open(image_path, 'rb') as photo:
             await update.message.reply_photo(
@@ -40,6 +40,9 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
     app.run_polling()
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
